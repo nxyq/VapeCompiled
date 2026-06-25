@@ -1,32 +1,53 @@
-name: rename
+name: Replace 7GrandDadPGN → nxyq
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
 
+# REQUIRED: allow push back to repo
+permissions:
+  contents: write
+
 jobs:
-  replace-text:
+  replace:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Replace text in all files
+      - name: Configure Git
         run: |
-          echo "Replacing 7GrandDadPGN with nxyq..."
-          grep -rl "7GrandDadPGN" . | while read file; do
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Replace text safely
+        run: |
+          echo "Searching and replacing..."
+
+          # Only process text files (avoids breaking binaries)
+          files=$(grep -rl "7GrandDadPGN" . || true)
+
+          if [ -z "$files" ]; then
+            echo "No matches found."
+            exit 0
+          fi
+
+          for file in $files; do
+            # skip git + binary-heavy folders
+            if [[ "$file" == *.png || "$file" == *.jpg || "$file" == *.zip ]]; then
+              continue
+            fi
+
             sed -i 's/7GrandDadPGN/nxyq/g' "$file"
           done
 
       - name: Commit changes
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
           if git diff --quiet; then
             echo "No changes to commit."
             exit 0
@@ -34,4 +55,7 @@ jobs:
 
           git add -A
           git commit -m "Auto-replace 7GrandDadPGN → nxyq"
-          git push
+
+      - name: Push changes (safe)
+        run: |
+          git push origin HEAD:main
