@@ -1,0 +1,37 @@
+name: rename
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  replace-text:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace text in all files
+        run: |
+          echo "Replacing 7GrandDadPGN with nxyq..."
+          grep -rl "7GrandDadPGN" . | while read file; do
+            sed -i 's/7GrandDadPGN/nxyq/g' "$file"
+          done
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git add -A
+          git commit -m "Auto-replace 7GrandDadPGN → nxyq"
+          git push
